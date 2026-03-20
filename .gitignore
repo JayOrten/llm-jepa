@@ -8,6 +8,7 @@ build/
 
 # Large generated datasets (small ones in datasets/ are tracked)
 datasets/opus_*.jsonl
+datasets/.cache/
 
 # Training outputs
 output-*/

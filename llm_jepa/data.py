@@ -4,16 +4,37 @@ Supports three data modes:
 - regular: standard SFT (input_ids, labels, attention_mask)
 - jepa: adds separately-tokenized user and assistant views for 3-view forward
 - stp: adds user_start_end and assistant_start_end indices for span extraction
+
+Tokenized datasets are cached to disk under datasets/.cache/ so mapping only
+runs once per unique (data_file, strategy, max_length, model, flags) combination.
 """
 
+import hashlib
+import json
 import logging
+import os
 
 import torch
-from datasets import load_dataset
+from datasets import load_dataset, load_from_disk
 
 from llm_jepa.models import get_adapter
 
 logger = logging.getLogger("llm_jepa")
+
+
+def _cache_key(data_file, strategy, max_length, model_name, **flags):
+    """Build a deterministic cache directory name from mapping parameters."""
+    key_dict = {
+        "data_file": os.path.abspath(data_file),
+        "strategy": strategy,
+        "max_length": max_length,
+        "model_name": model_name,
+        **{k: v for k, v in sorted(flags.items())},
+    }
+    key_str = json.dumps(key_dict, sort_keys=True)
+    h = hashlib.sha256(key_str.encode()).hexdigest()[:12]
+    basename = os.path.splitext(os.path.basename(data_file))[0]
+    return os.path.join("datasets", ".cache", f"{basename}_{strategy}_{max_length}_{h}")
 
 
 def _find_start_end(content, tokenizer, input_ids, attention_mask, model_name=""):
@@ -55,6 +76,9 @@ def load_and_prepare_dataset(
 ):
     """Load JSONL dataset and tokenize for training.
 
+    Results are cached to disk. Subsequent calls with the same parameters
+    skip tokenization entirely and load from cache.
+
     Args:
         data_file: Path to JSONL file with 'messages' field.
         tokenizer: HuggingFace tokenizer.
@@ -69,6 +93,18 @@ def load_and_prepare_dataset(
         plain_jepa: Skip chat template for JEPA views only.
         same_predictor: Use the same predictor token ID for all positions.
     """
+    # Check cache first
+    cache_dir = _cache_key(
+        data_file, strategy, max_length, model_name,
+        predictors=predictors, train_all=train_all, plain=plain,
+        front_pred=front_pred, reverse_pred=reverse_pred,
+        plain_jepa=plain_jepa, same_predictor=same_predictor,
+    )
+    if os.path.isdir(cache_dir):
+        if torch.cuda.is_available() and torch.cuda.current_device() == 0:
+            logger.info(f"Loading cached dataset from {cache_dir}")
+        return load_from_disk(cache_dir)
+
     adapter = get_adapter(model_name)
     dataset = load_dataset("json", data_files=data_file)["train"]
 
@@ -240,7 +276,6 @@ def load_and_prepare_dataset(
             })
         return result
 
-    import os
     num_proc = int(os.environ.get("MAP_NUM_PROC", 0))
     if num_proc <= 0:
         num_proc = min(os.cpu_count() or 1, 8)
@@ -261,6 +296,13 @@ def load_and_prepare_dataset(
             f"Dropped {dropped}/{original_len} examples "
             f"({dropped/original_len:.1%}) due to truncation at max_length={max_length}"
         )
+
+    # Save to cache
+    os.makedirs(os.path.dirname(cache_dir), exist_ok=True)
+    tokenized_dataset.save_to_disk(cache_dir)
+    if torch.cuda.is_available() and torch.cuda.current_device() == 0:
+        logger.info(f"Cached tokenized dataset to {cache_dir}")
+
     return tokenized_dataset
 
 

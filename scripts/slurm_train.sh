@@ -61,6 +61,11 @@ echo ""
 # Create slurm log directory
 mkdir -p slurm-logs
 
+# --- Offline mode (use cached models/tokenizers, no network) ---
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export HF_DATASETS_OFFLINE=1
+
 # --- NCCL tuning ---
 export NCCL_DEBUG=WARN
 export OMP_NUM_THREADS=$((SLURM_CPUS_PER_TASK / NGPUS))

@@ -44,6 +44,11 @@ EXTRA_ARGS="$@"
 # source /path/to/conda/etc/profile.d/conda.sh
 # conda activate jepa
 
+# --- Offline mode (use cached models/tokenizers, no network) ---
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+export HF_DATASETS_OFFLINE=1
+
 echo "=== LLM-JEPA Evaluation ==="
 echo "Config: $CONFIG"
 echo "Model:  $MODEL_DIR"

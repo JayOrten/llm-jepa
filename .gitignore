@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Large generated datasets (small ones in datasets/ are tracked)
+datasets/opus_*.jsonl
+
+# Training outputs
+output-*/
+ft-*/
+slurm-logs/
+
+# Eval outputs (should live inside model dirs)
+eval_*.jsonl
+eval_*_summary.json
+
+# Misc
+*.log
+.DS_Store

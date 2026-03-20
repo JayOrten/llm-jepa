@@ -1,0 +1,9 @@
+[strategy]
+name = "stp"
+lambda_ = 0.02
+gamma = 1.0
+last_token = -2
+loss_type = "cosine"
+
+[strategy.stp]
+linear_mode = "random_span"

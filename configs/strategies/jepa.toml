@@ -1,0 +1,5 @@
+[strategy]
+name = "jepa"
+lambda_ = 0.1
+gamma = 1.0
+loss_type = "cosine"

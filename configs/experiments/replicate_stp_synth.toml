@@ -1,0 +1,33 @@
+# Replicate our single-GPU STP experiment on synth dataset.
+# Usage:
+#   Regular: python train.py --config configs/experiments/replicate_stp_synth.toml --set strategy.name=regular
+#   STP:     python train.py --config configs/experiments/replicate_stp_synth.toml
+
+[model]
+name = "meta-llama/Llama-3.2-1B-Instruct"
+use_lora = true
+lora_rank = 16
+
+[data]
+train_file = "datasets/synth_train.jsonl"
+max_length = 128
+
+[training]
+output_dir = "./ft-stp-synth"
+batch_size = 8
+grad_accum = 4
+learning_rate = 2e-5
+num_epochs = 4
+seed = 82
+
+[strategy]
+name = "stp"
+lambda_ = 0.02
+last_token = -2
+loss_type = "cosine"
+
+[strategy.stp]
+linear_mode = "random_span"
+
+[evaluation]
+original_model_name = "meta-llama/Llama-3.2-1B-Instruct"

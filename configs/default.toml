@@ -1,0 +1,91 @@
+# Default configuration for LLM-JEPA
+# Override with strategy-specific or experiment-specific configs.
+
+[model]
+name = "meta-llama/Llama-3.2-1B-Instruct"
+tokenizer_name = ""
+use_lora = false
+lora_rank = 16
+pretrain = false
+load_lp = false
+
+[data]
+train_file = ""
+eval_file = ""
+data_file = ""
+max_length = 512
+max_train_samples = -1
+max_eval_samples = -1
+eval_split = 0.2
+split_seed = 42
+train_all = false
+plain = false
+
+[training]
+output_dir = "./output"
+batch_size = 4
+grad_accum = 4
+learning_rate = 2e-5
+lr_scheduler_type = "linear"
+warmup_steps = 0
+weight_decay = 0.0
+num_epochs = 3
+eval_steps = 10
+seed = 42
+track_flop = false
+same_flop = false
+constant_lr = false
+enable_save = true
+eval_gen_samples = 50
+eval_gen_every = 5
+
+[strategy]
+name = "regular"
+lambda_ = 0.1
+gamma = 1.0
+last_token = -1
+loss_type = "cosine"
+lbd_warmup = false
+min_lbd = 0.0
+linear_predictor = false
+predictors = 0
+
+[strategy.jepa]
+additive_mask = false
+ratio = -1.0
+front_pred = false
+reverse_pred = false
+avg_encoding = false
+plain_jepa = false
+same_predictor = false
+
+[strategy.stp]
+linear_mode = "random_span"
+span_max_length = -1
+span_times = 1
+span_layer = -1
+span_zero = false
+span_e2e = false
+span_all = false
+span_draw_both = false
+span_uniform = false
+length_adjustment = ""
+curvature_sign = false
+random_span_mask = false
+random_span_mask_recover = false
+
+[evaluation]
+model_name = ""
+original_model_name = ""
+output_file = "eval_output.jsonl"
+max_new_tokens = 128
+max_length = 512
+spider_path = ""
+split_tune_untune = false
+load_in_8bit = false
+load_in_4bit = false
+device_map = "cuda:0"
+
+[debug]
+level = "INFO"
+dry_run = false

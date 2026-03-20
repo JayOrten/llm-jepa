@@ -1,0 +1,25 @@
+name: jepa
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.10
+  - pytorch>=2.0
+  - pytorch-cuda=12.8
+  - pip
+  - pip:
+      - transformers>=4.40
+      - datasets
+      - accelerate
+      - peft
+      - dynaconf>=3.2
+      - safetensors
+      - tqdm
+      - numpy
+      - scikit-learn
+      - matplotlib
+      - sacrebleu
+      - bitsandbytes
+      - -e .

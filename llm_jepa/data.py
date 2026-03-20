@@ -241,8 +241,9 @@ def load_and_prepare_dataset(
         return result
 
     import os
-    num_proc = int(os.environ.get("MAP_NUM_PROC", os.cpu_count() or 1))
-    # num_proc=1 if dataset is small enough that forking overhead isn't worth it
+    num_proc = int(os.environ.get("MAP_NUM_PROC", 0))
+    if num_proc <= 0:
+        num_proc = min(os.cpu_count() or 1, 8)
     if len(dataset) < 10000:
         num_proc = 1
 
@@ -250,6 +251,7 @@ def load_and_prepare_dataset(
     tokenized_dataset = dataset.map(
         tokenize_conversations,
         batched=True,
+        batch_size=1000,
         remove_columns=dataset.column_names,
         num_proc=num_proc,
     )

@@ -53,7 +53,10 @@ def _find_start_end(content, tokenizer, input_ids, attention_mask, model_name=""
     decoded_input = [tokenizer.decode(t) for t in input_ids]
 
     for i in range(len(input_ids) - len(tokens), -1, -1):
-        if attention_mask[i] == 1 and decoded_input[i:i + len(tokens)] == decoded_content:
+        if (
+            attention_mask[i] == 1
+            and decoded_input[i : i + len(tokens)] == decoded_content
+        ):
             assert i > 0
             return i - 1, i + len(tokens) - 1
 
@@ -95,10 +98,17 @@ def load_and_prepare_dataset(
     """
     # Check cache first
     cache_dir = _cache_key(
-        data_file, strategy, max_length, model_name,
-        predictors=predictors, train_all=train_all, plain=plain,
-        front_pred=front_pred, reverse_pred=reverse_pred,
-        plain_jepa=plain_jepa, same_predictor=same_predictor,
+        data_file,
+        strategy,
+        max_length,
+        model_name,
+        predictors=predictors,
+        train_all=train_all,
+        plain=plain,
+        front_pred=front_pred,
+        reverse_pred=reverse_pred,
+        plain_jepa=plain_jepa,
+        same_predictor=same_predictor,
     )
     if os.path.isdir(cache_dir):
         if torch.cuda.is_available() and torch.cuda.current_device() == 0:
@@ -106,7 +116,7 @@ def load_and_prepare_dataset(
         return load_from_disk(cache_dir)
 
     adapter = get_adapter(model_name)
-    dataset = load_dataset("json", data_files=data_file)["train"]
+    dataset = load_dataset("json", data_files=data_file)["train"].shuffle(seed=42)
 
     if torch.cuda.is_available() and torch.cuda.current_device() == 0:
         logger.info(f"Loaded {len(dataset)} examples from {data_file}")
@@ -139,15 +149,26 @@ def load_and_prepare_dataset(
                 if train_all:
                     formatted = messages[1]["content"] + "<|eot_id|>"
                 else:
-                    formatted = messages[1]["content"] + "<|perception|>" + messages[2]["content"] + "<|eot_id|>"
+                    formatted = (
+                        messages[1]["content"]
+                        + "<|perception|>"
+                        + messages[2]["content"]
+                        + "<|eot_id|>"
+                    )
             else:
                 formatted = tokenizer.apply_chat_template(
-                    full_messages, tokenize=False, add_generation_prompt=False,
+                    full_messages,
+                    tokenize=False,
+                    add_generation_prompt=False,
                 )
 
             tokenized = tokenizer(
-                formatted, truncation=True, max_length=max_length,
-                padding="max_length", return_tensors=None,
+                formatted,
+                truncation=True,
+                max_length=max_length,
+                padding="max_length",
+                return_tensors=None,
+                add_special_tokens=False,
             )
             input_ids = tokenized["input_ids"]
             attention_mask = tokenized["attention_mask"]
@@ -158,7 +179,9 @@ def load_and_prepare_dataset(
                     for i in range(len(input_ids))
                 ]
             else:
-                labels = _create_masked_labels(messages, tokenizer, input_ids, attention_mask)
+                labels = _create_masked_labels(
+                    messages, tokenizer, input_ids, attention_mask
+                )
 
             input_ids_list.append(input_ids)
             labels_list.append(labels)
@@ -181,7 +204,9 @@ def load_and_prepare_dataset(
                     pred_id = 1 if same_predictor else to_add
                     token = f"<|predictor_{pred_id}|>"
                     if front_pred:
-                        user_messages[0]["content"] = token + user_messages[0]["content"]
+                        user_messages[0]["content"] = (
+                            token + user_messages[0]["content"]
+                        )
                     else:
                         user_messages[0]["content"] += token
                     to_add -= 1
@@ -190,11 +215,17 @@ def load_and_prepare_dataset(
                     formatted_user = user_messages[0]["content"]
                 else:
                     formatted_user = tokenizer.apply_chat_template(
-                        user_messages, tokenize=False, add_generation_prompt=False,
+                        user_messages,
+                        tokenize=False,
+                        add_generation_prompt=False,
                     )
                 tok_user = tokenizer(
-                    formatted_user, truncation=True, max_length=max_length,
-                    padding="max_length", return_tensors=None,
+                    formatted_user,
+                    truncation=True,
+                    max_length=max_length,
+                    padding="max_length",
+                    return_tensors=None,
+                    add_special_tokens=False,
                 )
                 user_input_ids_list.append(tok_user["input_ids"])
                 user_labels_list.append([-100] * len(tok_user["input_ids"]))
@@ -213,11 +244,17 @@ def load_and_prepare_dataset(
                     formatted_asst = assistant_messages[0]["content"]
                 else:
                     formatted_asst = tokenizer.apply_chat_template(
-                        assistant_messages, tokenize=False, add_generation_prompt=False,
+                        assistant_messages,
+                        tokenize=False,
+                        add_generation_prompt=False,
                     )
                 tok_asst = tokenizer(
-                    formatted_asst, truncation=True, max_length=max_length,
-                    padding="max_length", return_tensors=None,
+                    formatted_asst,
+                    truncation=True,
+                    max_length=max_length,
+                    padding="max_length",
+                    return_tensors=None,
+                    add_special_tokens=False,
                 )
                 assistant_input_ids_list.append(tok_asst["input_ids"])
                 assistant_labels_list.append([-100] * len(tok_asst["input_ids"]))
@@ -233,7 +270,11 @@ def load_and_prepare_dataset(
                 else:
                     content = messages[1]["content"]
                 user_span = _find_start_end(
-                    content, tokenizer, input_ids, attention_mask, model_name,
+                    content,
+                    tokenizer,
+                    input_ids,
+                    attention_mask,
+                    model_name,
                 )
 
                 # Assistant span
@@ -242,7 +283,11 @@ def load_and_prepare_dataset(
                 else:
                     asst_content = messages[2]["content"]
                 asst_span = _find_start_end(
-                    asst_content, tokenizer, input_ids, attention_mask, model_name,
+                    asst_content,
+                    tokenizer,
+                    input_ids,
+                    attention_mask,
+                    model_name,
                 )
 
                 if user_span is None or asst_span is None:
@@ -261,19 +306,23 @@ def load_and_prepare_dataset(
             "attention_mask": attention_mask_list,
         }
         if needs_views:
-            result.update({
-                "input_ids_user": user_input_ids_list,
-                "labels_user": user_labels_list,
-                "attention_mask_user": user_attention_mask_list,
-                "input_ids_assistant": assistant_input_ids_list,
-                "labels_assistant": assistant_labels_list,
-                "attention_mask_assistant": assistant_attention_mask_list,
-            })
+            result.update(
+                {
+                    "input_ids_user": user_input_ids_list,
+                    "labels_user": user_labels_list,
+                    "attention_mask_user": user_attention_mask_list,
+                    "input_ids_assistant": assistant_input_ids_list,
+                    "labels_assistant": assistant_labels_list,
+                    "attention_mask_assistant": assistant_attention_mask_list,
+                }
+            )
         if needs_spans:
-            result.update({
-                "user_start_end": user_start_end_list,
-                "assistant_start_end": assistant_start_end_list,
-            })
+            result.update(
+                {
+                    "user_start_end": user_start_end_list,
+                    "assistant_start_end": assistant_start_end_list,
+                }
+            )
         return result
 
     num_proc = int(os.environ.get("MAP_NUM_PROC", 0))
@@ -312,12 +361,18 @@ def _create_masked_labels(messages, tokenizer, input_ids, attention_mask):
 
     for msg in messages:
         if msg["role"] == "assistant":
-            assistant_tokens = tokenizer.encode(msg["content"], add_special_tokens=False)
+            assistant_tokens = tokenizer.encode(
+                msg["content"], add_special_tokens=False
+            )
             decoded_assistant = [tokenizer.decode(t) for t in assistant_tokens]
             decoded_input = [tokenizer.decode(t) for t in input_ids]
 
             for i in range(len(input_ids) - len(assistant_tokens) + 1):
-                if attention_mask[i] == 1 and decoded_input[i:i + len(assistant_tokens)] == decoded_assistant:
+                if (
+                    attention_mask[i] == 1
+                    and decoded_input[i : i + len(assistant_tokens)]
+                    == decoded_assistant
+                ):
                     for j in range(i, min(i + len(assistant_tokens), len(input_ids))):
                         if attention_mask[j] == 1:
                             labels[j] = input_ids[j]

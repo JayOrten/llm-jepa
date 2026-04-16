@@ -1,0 +1,50 @@
+# Experiment 3: Finetune Llama-3.2-1B-Instruct with LoRA on OPUS translation.
+# Compares fine-tuning vs from-scratch (exp2) on same task. Local GPU (4080 12GB).
+#
+# Using 100k opus subset, 2 epochs. ~30 min per strategy.
+#
+# Regular:
+#   python train.py --config configs/experiments/exp3_translation_finetune.toml --set strategy.name=regular --set training.output_dir=./output-exp3-regular
+# STP:
+#   python train.py --config configs/experiments/exp3_translation_finetune.toml --set training.output_dir=./output-exp3-stp
+
+[model]
+name = "meta-llama/Llama-3.2-1B-Instruct"
+use_lora = true
+lora_rank = 16
+
+[data]
+train_file = "datasets/opus_train.jsonl"
+eval_file = "datasets/opus_eval.jsonl"
+max_length = 256
+plain = true
+train_all = false
+max_train_samples = 10000
+max_eval_samples = 500
+
+[training]
+output_dir = "./output-exp3-stp"
+batch_size = 8
+grad_accum = 4
+learning_rate = 2e-5
+lr_scheduler_type = "cosine"
+warmup_steps = 100
+weight_decay = 0.01
+num_epochs = 2
+eval_steps = 50
+seed = 42
+enable_save = true
+eval_gen_samples = 50
+eval_gen_every = 3
+
+[strategy]
+name = "stp"
+lambda_ = 0.02
+last_token = -2
+loss_type = "cosine"
+
+[strategy.stp]
+linear_mode = "random_span"
+
+[evaluation]
+original_model_name = "meta-llama/Llama-3.2-1B-Instruct"

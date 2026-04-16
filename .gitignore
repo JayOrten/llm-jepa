@@ -15,6 +15,18 @@ output-*/
 ft-*/
 slurm-logs/
 
+# Model weights / checkpoints / SAE artifacts
+*.safetensors
+*.pt
+*.bin
+trained_saes/
+analysis/output/
+analysis/analysis/
+**/sae_checkpoints/
+
+# Local Claude state
+.claude/
+
 # Eval outputs (should live inside model dirs)
 eval_*.jsonl
 eval_*_summary.json

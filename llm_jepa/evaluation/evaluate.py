@@ -23,7 +23,7 @@ logger = logging.getLogger("llm_jepa")
 
 
 def load_model_and_tokenizer(model_name, original_model_name, load_in_8bit=False,
-                              load_in_4bit=False, device_map="auto"):
+                              load_in_4bit=False, device_map="auto", output_hidden_states=False):
     """Load model and tokenizer for evaluation with optional quantization."""
     adapter = get_adapter(original_model_name)
 
@@ -66,6 +66,8 @@ def load_model_and_tokenizer(model_name, original_model_name, load_in_8bit=False
         low_cpu_mem_usage=True,
         **attn_kwargs,
     )
+    if output_hidden_states:
+        model.config.output_hidden_states = True
     model.eval()
 
     return model, tokenizer
@@ -84,7 +86,10 @@ def format_conversation(messages, tokenizer, include_assistant=False, plain=Fals
 
 def generate_response(model, tokenizer, prompt, max_length=512, max_new_tokens=128):
     """Generate a single response."""
-    inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=max_length)
+    # add_special_tokens=False: prompt comes from apply_chat_template which
+    # already includes <|begin_of_text|>; default tokenization would double it.
+    inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=max_length,
+                       add_special_tokens=False)
     if hasattr(model, "device"):
         inputs = {k: v.to(model.device) for k, v in inputs.items()}
 
@@ -106,7 +111,8 @@ def generate_response(model, tokenizer, prompt, max_length=512, max_new_tokens=1
 
 def relative_probability(model, tokenizer, prompt, max_length=512):
     """HellaSwag: pick A/B/C/D by next-token probability."""
-    inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=max_length)
+    inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=max_length,
+                       add_special_tokens=False)
     if hasattr(model, "device"):
         inputs = {k: v.to(model.device) for k, v in inputs.items()}
 

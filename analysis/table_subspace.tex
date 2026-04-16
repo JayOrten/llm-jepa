@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\caption{Representative tokens along top divergence PCs (layer~15). Positive: STP shifted more; negative: shifted less.}
+\label{tab:subspace}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}clll@{}}
+\toprule
+\textbf{PC (\% var)} & \textbf{Dir.} & \textbf{Top tokens} & \textbf{Type} \\
+\midrule
+1 (55.8\%) & $+$ & \texttt{[ \; *[ \; ([ \; (([} & regex \\
+             & $-$ & \emph{more, character, number} & NL \\
+\midrule
+3 (7.0\%)   & $+$ & \texttt{' \;} \emph{letter} & literal \\
+             & $-$ & \texttt{(( \; ( \; ]).} & regex \\
+\bottomrule
+\end{tabular}
+\end{table}
